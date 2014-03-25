@@ -122,7 +122,7 @@ module GEPUB
         warn 'GEPUB::Book#new interface changed. You must supply path to package.opf as first argument. If you want to set title, please use GEPUB::Book#title='
       end
       @package = Package.new(path, attributes)
-      @toc = []
+      @toc = {}
       yield book if block_given?
     end
 
@@ -146,13 +146,13 @@ module GEPUB
       toc = @toc
       metaclass = (class << item;self;end)
       metaclass.send(:define_method, :toc_text,
-                                    Proc.new { |text|
-                                      toc.push(:item => item, :text => text, :id => nil)
+                                    Proc.new { |text, parent_item=nil|
+                                      toc[item.itemid] = {:item => item, :parent => parent_item, :text => text, :id => nil}
                                       item
                      })
       metaclass.send(:define_method, :toc_text_with_id,
-                                    Proc.new { |text, id|
-                                      toc.push(:item => item, :text => text, :id => id)
+                                    Proc.new { |text, id, parent_item=nil|
+                                      toc[item.itemid] = {:item => item, :parent => parent_item, :text => text, :id => id}
                                       item
                      })
       bindings = @package.bindings
@@ -271,17 +271,9 @@ EOF
         doc.html('xmlns' => "http://www.w3.org/1999/xhtml",'xmlns:epub' => "http://www.idpf.org/2007/ops") {
           doc.head { doc.text ' ' }
           doc.body {
+            doc.h1 "#{title}"
             doc.nav('epub:type' => 'toc', 'id' => 'toc') {
-              doc.h1 "#{title}"
-              doc.ol {
-                @toc.each {
-                  |x|
-                  id = x[:id].nil? ? "" : "##{x[:id]}"
-                  doc.li {
-                    doc.a({'href' => x[:item].href + id} ,x[:text])
-                  }
-                }
-              }
+              nav_tree doc
             }
           }
         }
@@ -304,20 +296,7 @@ EOF
           }
           count = 1
           xml.navMap {
-            @toc.each {
-              |x|
-              xml.navPoint('id' => "#{x[:item].itemid}", 'playOrder' => "#{count}") {
-                xml.navLabel {
-                  xml.text_  "#{x[:text]}"
-                }
-                if x[:id].nil?
-                  xml.content('src' => "#{x[:item].href}")
-                else
-                  xml.content('src' => "#{x[:item].href}##{x[:id]}")
-                end
-              }
-              count += 1
-            }
+            ncx_tree(xml)
           }
         }
       }
@@ -325,6 +304,72 @@ EOF
     end
     
     private
+    # Recursively generates an XHTML navigation tree in the given XHTML document.
+    #
+    # doc - HTML navigation document
+    # toc - (internal use) unprocessed elements of TOC
+    # toc_children - (internal use) immediate children in TOC
+    def nav_tree(doc, toc=nil, toc_children=nil)
+      toc ||= @toc.clone
+      toc_children ||= toc
+
+      doc.ol {
+        until toc_children.empty?
+          id, info = toc_children.shift
+          children = toc.select{|k, v| v[:parent] == info[:item] }
+          toc.reject!{|k, v| children.include?(k) }
+
+          id = info[:id].nil? ? "" : "##{x[:id]}"
+          doc.li {
+            doc.a({'href' => info[:item].href + id}, info[:text])
+
+            unless children.empty?
+              nav_tree doc, toc, children
+            end
+          }
+        end
+      }
+    end
+
+    # Recursively generates an NCX XML navPoint tree in the given XML document.
+    #
+    # xml - NCX navigation document
+    # toc - (internal use) unprocessed elements of TOC
+    # toc_children - (internal use) immediate children in TOC
+    # counter - (internal use) proc used for setting playOrder
+    def ncx_tree(xml, toc=nil, toc_children=nil, counter=nil)
+      toc ||= @toc.clone
+      toc_children ||= toc
+      counter ||= make_counter
+
+      until toc_children.empty?
+        id, info = toc_children.shift
+        children = toc.select{|k, v| v[:parent] == info[:item] }
+        toc.reject!{|k, v| children.include?(k) }
+
+        xml.navPoint('id' => "#{info[:item].itemid}", 'playOrder' => "#{counter.call}") {
+          xml.navLabel {
+            xml.text_ "#{info[:text]}"
+          }
+          if info[:id].nil?
+            xml.content('src' => "#{info[:item].href}")
+          else
+            xml.content('src' => "#{info[:item].href}##{x[:id]}")
+          end
+
+          unless children.empty?
+            ncx_tree xml, toc, children, counter
+          end
+        }
+      end
+    end
+
+    # Returns a closure that counts upward each time it is called, starting with 1.
+    def make_counter
+      count = 0
+      lambda { count += 1 }
+    end
+
     def self.parse_container(zis, files) 
       package_path = nil
       package = nil
@@ -375,7 +420,8 @@ EOF
           item.media_type == 'application/x-dtbncx+xml'
         }.size == 0
           if (@toc.size == 0)
-            @toc << { :item => @package.manifest.item_list[@package.spine.itemref_list[0].idref] }
+            item_id = @package.spine.itemref_list[0].idref
+            @toc[item_id] = { :item => @package.manifest.item_list[item_id] }
           end
           add_item('toc.ncx', StringIO.new(ncx_xml), 'ncx')
         end

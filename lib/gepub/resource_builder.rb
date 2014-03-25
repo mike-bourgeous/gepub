@@ -22,6 +22,8 @@ module GEPUB
     
     def initialize(book, attributes = {},  &block)
       @last_defined_item = nil
+      @ordered = false
+      @ordered_parent = nil
       @book = book
       @dir_prefix = ""
       @file_postprocess = {}
@@ -36,9 +38,23 @@ module GEPUB
     end
 
     def ordered(&block)
+      # Allows nesting ordered blocks to create hierarchical TOC
+      if @ordered
+        was_ordered = true
+        old_parent = @ordered_parent
+        @ordered_parent = @last_defined_item.item if @last_defined_item
+      end
+      @ordered = true
+
       @book.ordered {
         instance_eval &block
       }
+
+      if was_ordered
+        @ordered_parent = old_parent
+      else
+        @ordered = false
+      end
     end
 
     def file(val)
@@ -140,7 +156,7 @@ module GEPUB
     end
 
     def heading(text, id = nil)
-      @last_defined_item.toc_text_with_id(text, id)
+      @last_defined_item.toc_text_with_id(text, id, @ordered_parent)
     end
 
     def id(the_id)
