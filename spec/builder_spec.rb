@@ -344,10 +344,10 @@ describe GEPUB::Builder do
       expect(builder.instance_eval{ @book.spine_items[0].href }).to eq('text/cover.xhtml')
       expect(builder.instance_eval{ @book.item_by_href('text/memo.txt') }).not_to be_nil
       expect(builder.instance_eval{ @book.spine_items[1].href }).to eq('text/memo.txt')
-      expect(builder.instance_eval{ @book.instance_eval { @toc[0][:item].href }}).to eq('text/cover.xhtml')
-      expect(builder.instance_eval{ @book.instance_eval { @toc[0][:text] }}).to eq('cover page')
-      expect(builder.instance_eval{ @book.instance_eval { @toc[1][:item].href }}).to eq('text/memo.txt')
-      expect(builder.instance_eval{ @book.instance_eval { @toc[1][:text] }}).to eq('memo text')
+      expect(builder.instance_eval{ @book.instance_eval { @toc['item_cover'][:item].href }}).to eq('text/cover.xhtml')
+      expect(builder.instance_eval{ @book.instance_eval { @toc['item_cover'][:text] }}).to eq('cover page')
+      expect(builder.instance_eval{ @book.instance_eval { @toc['item_memo'][:item].href }}).to eq('text/memo.txt')
+      expect(builder.instance_eval{ @book.instance_eval { @toc['item_memo'][:text] }}).to eq('memo text')
     end
 
     it 'should add files and page-spread-property' do
