@@ -157,9 +157,10 @@ module GEPUB
 
     def ordered
       raise 'need block.' if !block_given?
+      was_ordered = @ordered
       @ordered = true
       yield
-      @ordered = nil
+      @ordered = was_ordered
     end
 
     def add_ordered_item(href, io_or_filename = nil, id = nil, attributes = {})
