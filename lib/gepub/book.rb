@@ -114,6 +114,9 @@ module GEPUB
       book
     end
 
+    # Title heading used for auto-generated table of contents
+    attr_accessor :toc_title
+
     # creates new empty Book object.
     # usually you do not need to specify any arguments.
 
@@ -123,6 +126,7 @@ module GEPUB
       end
       @package = Package.new(path, attributes)
       @toc = []
+      @toc_title = 'Table of Contents'
       yield book if block_given?
     end
 
@@ -389,7 +393,7 @@ EOF
           |href, item|
           (item.properties||[]).member? 'nav'
           }.size == 0
-          generate_nav_doc
+          generate_nav_doc @toc_title
         end
         
         @package.spine.remove_with_idlist @package.manifest.item_list.map {
