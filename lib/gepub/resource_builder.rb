@@ -40,12 +40,17 @@ module GEPUB
     def ordered(&block)
       # Allows nesting ordered blocks to create hierarchical TOC
       if @ordered
+        puts "\n\n\n\tAlready ordered.\n\n\n" # XXX
         was_ordered = true
         old_parent = @ordered_parent
-        old_item = @last_defined_item
         if @last_defined_item && @book.spine.itemref_by_id[@last_defined_item.item.id].linear != 'no'
+          puts "\n\n\n\tNew ordered parent: #{@ordered_parent.inspect[0..50]} (was #{@ordered_parent.inspect[0..50]})\n\n\n" # XXX
           @ordered_parent = @last_defined_item.item if @last_defined_item
+        else
+          puts "\n\n\n\tOrdered parent unchanged (no last item): #{@ordered_parent.inspect[0..50]}\n\n\n" # XXX
         end
+      else
+        puts "\n\n\nInitial entry to ordered block.\n\n\n" # XXX
       end
       @ordered = true
 
@@ -53,10 +58,13 @@ module GEPUB
         instance_eval &block
       }
 
+      @last_defined_item = nil
       if was_ordered
+        puts "\n\n\n\tFinishing nested ordered with #{@old_parent.inspect[0..50]}.  Restoring parent #{old_parent.inspect[0..50]}.\n\n\n" # XXX
         @ordered_parent = old_parent
-        @last_defined_item = nil
       else
+        puts "\n\n\nFinishing last ordered.  Clearing parent.\n\n\n" # XXX
+        @ordered_parent = nil
         @ordered = false
       end
     end
