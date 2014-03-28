@@ -42,7 +42,10 @@ module GEPUB
       if @ordered
         was_ordered = true
         old_parent = @ordered_parent
-        @ordered_parent = @last_defined_item.item if @last_defined_item
+        old_item = @last_defined_item
+        if @last_defined_item && @book.spine.itemref_by_id[@last_defined_item.item.id].linear != 'no'
+          @ordered_parent = @last_defined_item.item if @last_defined_item
+        end
       end
       @ordered = true
 
@@ -52,6 +55,7 @@ module GEPUB
 
       if was_ordered
         @ordered_parent = old_parent
+        @last_defined_item = nil
       else
         @ordered = false
       end
