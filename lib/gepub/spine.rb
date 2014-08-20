@@ -133,6 +133,13 @@ module GEPUB
       push item
     end
 
+    def insert(index, item)
+      i = Itemref.new(item.id, self)
+      @item_refs.insert(index, i)
+      @itemref_by_id[item.id] = i
+      i
+    end
+
     def rendition_specified?
       @item_refs.select { |itemref| itemref.rendition_specified? }.size > 0
     end
