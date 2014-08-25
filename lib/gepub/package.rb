@@ -155,6 +155,14 @@ module GEPUB
       item
     end
 
+    def add_item_at_index(index, href, io_or_filename = nil, id = nil, attributes = {})
+      item = @manifest.add_item(id, href, nil, attributes)
+      item.add_content(io_or_filename) unless io_or_filename.nil?
+      @spine.insert(index, item)
+      yield item if block_given?
+      item
+    end
+
     def ordered
       raise 'need block.' if !block_given?
       was_ordered = @ordered

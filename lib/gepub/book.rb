@@ -269,6 +269,10 @@ EOF
       add_item('nav.html', StringIO.new(nav_doc(title)), 'nav').add_property('nav')
     end
 
+    def insert_nav_doc(index, title = 'Table of Contents')
+      add_item_at_index(index, 'nav.html', StringIO.new(nav_doc(title)), 'nav').add_property('nav')
+    end
+
     def nav_doc(title = 'Table of Contents')
       builder = Nokogiri::XML::Builder.new {
         |doc|
